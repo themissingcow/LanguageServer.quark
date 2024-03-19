@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import logging
 import fcntl
+import logging
 import os
 import selectors
 import signal
@@ -22,7 +22,6 @@ import sys
 from asyncio.streams import StreamReader
 from contextlib import closing
 from threading import Event, Thread
-
 
 LOCALHOST = "127.0.0.1"
 
@@ -40,7 +39,6 @@ class StdinThread(Thread):
         self._selector = selectors.DefaultSelector()
 
     def run(self):
-
         self._selector.register(sys.stdin, selectors.EVENT_READ, self.__read)
 
         while not self._stop_event.is_set():
@@ -109,7 +107,7 @@ class SCRunner:
     send_port = None
     ready_message = "***LSP READY***"
 
-    __logger = None
+    __logger: logging.Logger
     __udp_server = None
     __udp_client = None
     __subprocess = None
@@ -137,10 +135,14 @@ class SCRunner:
 
         if not self.receive_port or not self.send_port:
             self.receive_port, self.send_port = self.__get_free_ports()
-            self.__logger.info("Found free ports %s, %s", self.receive_port, self.send_port)
+            self.__logger.info(
+                "Found free ports %s, %s", self.receive_port, self.send_port
+            )
 
         if not os.path.exists(self.sclang_path):
-            raise RuntimeError(f"The specified sclang path does not exist: {self.sclang_path}")
+            raise RuntimeError(
+                f"The specified sclang path does not exist: {self.sclang_path}"
+            )
 
         additional_vars = {
             "SCLANG_LSP_ENABLE": "1",
@@ -155,7 +157,9 @@ class SCRunner:
         if self.config_path:
             config = os.path.expanduser(os.path.expandvars(self.config_path))
             if not os.path.exists(config):
-                raise RuntimeError(f"The specified config file does not exist: '{config}'")
+                raise RuntimeError(
+                    f"The specified config file does not exist: '{config}'"
+                )
             command.extend(["-l", config])
 
         self.__logger.info(f"RUNNER: Launching SC with cmd: {command}")
@@ -178,7 +182,8 @@ class SCRunner:
 
         # Await subprocess termination
         sc_exit_code = await self.__subprocess.wait()
-        self.__stdin_thread.close()
+        if self.__stdin_thread:
+            self.__stdin_thread.close()
         return sc_exit_code
 
     def stop(self):
@@ -224,7 +229,9 @@ class SCRunner:
             local_addr=(LOCALHOST, self.receive_port),
         )
         self.__udp_server = transport
-        self.__logger.info("UDP receiver running on %s:%d", LOCALHOST, self.receive_port)
+        self.__logger.info(
+            "UDP receiver running on %s:%d", LOCALHOST, self.receive_port
+        )
 
     def __stop_subprocess(self):
         """
@@ -248,7 +255,7 @@ class SCRunner:
                 asyncio.create_task(self.__start_communication_from_sc())
                 asyncio.create_task(self.__start_communication_to_sc())
 
-    def __get_free_ports(self) -> (int, int):
+    def __get_free_ports(self) -> tuple[int, int]:
         """
         Determines two free localhost ports.
         """
@@ -273,8 +280,16 @@ def create_arg_parser(sc_runner: SCRunner):
         description="Runs the SuperCollider LSP server and provides stdin/stdout access to it",
     )
 
-    parser.add_argument("--sclang-path", required=not sc_runner.sclang_path, default=sc_runner.sclang_path)
-    parser.add_argument("--config-path", required=not sc_runner.config_path, default=sc_runner.config_path)
+    parser.add_argument(
+        "--sclang-path",
+        required=not sc_runner.sclang_path,
+        default=sc_runner.sclang_path,
+    )
+    parser.add_argument(
+        "--config-path",
+        required=not sc_runner.config_path,
+        default=sc_runner.config_path,
+    )
     parser.add_argument("--send-port", type=int)
     parser.add_argument("--receive-port", type=int)
     parser.add_argument("--ide-name", default=sc_runner.ide_name)
@@ -296,7 +311,9 @@ def main():
     args = parser.parse_args()
 
     if args.log_file:
-        formatter = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
+        )
         handler = logging.FileHandler(args.log_file)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
