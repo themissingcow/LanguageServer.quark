@@ -15,6 +15,7 @@ import asyncio
 import logging
 import fcntl
 import os
+import selectors
 import signal
 import socket
 import sys
@@ -36,18 +37,25 @@ class StdinThread(Thread):
         super().__init__()
         self._stop_event = Event()
         self._on_received = on_stdin_received
+        self._selector = selectors.DefaultSelector()
 
     def run(self):
+
+        self._selector.register(sys.stdin, selectors.EVENT_READ, self.__read)
+
         while not self._stop_event.is_set():
             try:
-                # Reading with non-blocking IO seems to raise TypeErrors
-                # in codecs.py, but forcing some epcific byte range seems
-                # to work even if there is less data available.
-                data = sys.stdin.read(1024)
-                if data:
-                    self._on_received(data)
+                events = self._selector.select()
+                for key, mask in events:
+                    callback = key.data
+                    callback(key.fileobj, mask)
             except KeyboardInterrupt:
                 break
+
+    def __read(self, conn, _):
+        data = sys.stdin.read()
+        if data:
+            self._on_received(data)
 
     def close(self):
         """
