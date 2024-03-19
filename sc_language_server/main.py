@@ -50,8 +50,8 @@ class StdinThread(Thread):
             except KeyboardInterrupt:
                 break
 
-    def __read(self, conn, _):
-        data = sys.stdin.read()
+    def __read(self, fileobj, _):
+        data = fileobj.read()
         if data:
             self._on_received(data)
 
