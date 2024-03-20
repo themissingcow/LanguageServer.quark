@@ -52,6 +52,7 @@ class StdinThread(Thread):
 
     def __read(self, fileobj, _):
         data = fileobj.read()
+
         if data:
             self._on_received(data)
 
