@@ -6,7 +6,7 @@
 LSPDatabase {
     classvar allMethodNames, allMethods, allClasses, allMethodsByName, methodLocations;
     classvar classSymbols, methodSymbols, allSymbolObjects;
-	classvar classDocs;
+	classvar <classDocs;
     
     *initClass {
         methodLocations = ();
@@ -187,26 +187,7 @@ LSPDatabase {
 
 	*classDocString {
 		|class|
-		^classDocs.atFail(class.name,
-			{ 
-				var stream, doc, node;
-				doc = SCDoc.documents["Classes/"++class.name];
-				try {
-					node = SCDoc.parseDoc(doc);
-				} {
-					classDocs.put(class.name, "");
-					^"" 
-				};
-				//try {
-					stream = CollStream("");
-					SCDocMarkdownRenderer.renderOnStream(stream, doc, node);
-					classDocs.put(class.name, stream.collection);
-					^stream.collection;
-				//} {
-				//    ^""
-				//}
-			}
-		);
+    DocumentationProvider.hasProvider(Class) !? { ^DocumentationProvider.getDocumentation(class) }
 	}
     
     *findDefinitions {

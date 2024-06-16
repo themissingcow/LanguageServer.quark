@@ -105,6 +105,25 @@ LSPConnection {
         // @TODO Is this the only "default" provider we want?
         this.addProvider(InitializeProvider(this, {}));
         
+        \DocumentationProvider.asClass !? { |docProvider|
+            docProvider.registerProvider(Class, { |class|
+                LSPDatabase.classDocs.atFail(class.name, { 
+                var stream, doc, node;
+                doc = SCDoc.documents["Classes/"++class.name];
+                try {
+                    node = SCDoc.parseDoc(doc);
+                } {
+                    LSPDatabase.classDocs.put(class.name, "");
+                    ^"" 
+                };
+                    stream = CollStream("");
+                    SCDocMarkdownRenderer.renderOnStream(stream, doc, node);
+                    LSPDatabase.classDocs.put(class.name, stream.collection); 
+                    stream.collection
+                })
+            });
+        };
+
         readyMsg.postln;
     }
     
