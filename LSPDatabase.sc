@@ -6,7 +6,7 @@
 LSPDatabase {
     classvar allMethodNames, allMethods, allClasses, allMethodsByName, methodLocations;
     classvar classSymbols, methodSymbols, allSymbolObjects;
-	classvar classDocs;
+	classvar <classDocs;
     
     *initClass {
         methodLocations = ();
@@ -187,26 +187,7 @@ LSPDatabase {
 
 	*classDocString {
 		|class|
-		^classDocs.atFail(class.name,
-			{ 
-				var stream, doc, node;
-				doc = SCDoc.documents["Classes/"++class.name];
-				try {
-					node = SCDoc.parseDoc(doc);
-				} {
-					classDocs.put(class.name, "");
-					^"" 
-				};
-				//try {
-					stream = CollStream("");
-					SCDocMarkdownRenderer.renderOnStream(stream, doc, node);
-					classDocs.put(class.name, stream.collection);
-					^stream.collection;
-				//} {
-				//    ^""
-				//}
-			}
-		);
+    DocumentationProvider.hasProvider(Class) !? { ^DocumentationProvider.getDocumentation(class) }
 	}
     
     *findDefinitions {
@@ -380,6 +361,25 @@ LSPDatabase {
         )
     }
     
+    *getReferences {
+        |word|
+        var references = Class.findAllReferences(word.asSymbol);
+
+        ^references.collect {
+            |method|
+            this.renderMethodLocation(method)
+        }
+    }
+    
+    *getDefinitionsForWord {
+        |word|
+        var references = Class.findAllReferences(word.asSymbol);
+        
+        ^references.collect {
+            |method|
+            this.renderMethodLocation(method)
+        }
+    }
     
     *getDocumentLine {
         |doc, line|
@@ -391,16 +391,27 @@ LSPDatabase {
         var lineString = this.getDocumentLine(doc, line);
         var start = character;
         var word;
+        var isWord = {
+            |ch|
+            ch.isAlphaNum or: { ch == $_ }
+        };
         
+        if (lineString[start].class == Nil ) { ^nil };
+
         Log('LanguageServer.quark').info("Searching line for a word: '%' at %:%", lineString, line, character);
+
+        if (not(isWord.(lineString[start])) and: {
+            isWord.(lineString[(start - 1).max(0)])
+        }) {
+            start = start - 1;
+        };
         
         while {
-            (start >= 0) and: { ((lineString[start] !? _.isAlphaNum ?? true)  or: { lineString[start] == $_ }) }
+            (start >= 0) and: { isWord.(lineString[start]) }
         } {
             start = start - 1
         };
         start = start + 1;
-        
         word = lineString.findRegexpAt("[A-Za-z][\\w]*", start);
         if (word.size > 0) {
             ^word[0]
@@ -478,7 +489,7 @@ LSPDatabase {
                             // "end region at %:% depth %".format(lineNum, i, regionDepth).postln;
                             regionStack.last.put(
                                 \end,
-                                (line: lineNum, character: i)
+                                (line: lineNum, character: i + 1)
                             );
                             regions = regions.add((
                                 range: regionStack.removeAt(regionStack.size-1),

@@ -105,6 +105,29 @@ LSPConnection {
         // @TODO Is this the only "default" provider we want?
         this.addProvider(InitializeProvider(this, {}));
         
+        \DocumentationProvider.asClass !? { |docProvider|
+            docProvider.registerProvider(Class, { |class|
+                docProvider.classDocs.atFail(class.name, { 
+                    var stream, doc, node;
+                    doc = SCDoc.documents["Classes/"++class.name];
+
+                    if (doc.isUndocumentedClass.not, {
+                        try {
+                            node = SCDoc.parseDoc(doc);
+                        } {
+                            docProvider.classDocs.put(class.name, "");
+                            ^"" 
+                        };
+                            stream = CollStream("");
+                            SCDocMarkdownRenderer.renderOnStream(stream, doc, node);
+                            docProvider.classDocs.put(class.name, stream.collection); 
+                            stream.collection
+                        }, { "undocumented" }
+                    );
+                })
+            });
+        };
+
         readyMsg.postln;
     }
     
