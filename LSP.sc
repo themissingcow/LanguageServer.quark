@@ -107,7 +107,7 @@ LSPConnection {
         
         \DocumentationProvider.asClass !? { |docProvider|
             docProvider.registerProvider(Class, { |class|
-                LSPDatabase.classDocs.atFail(class.name, { 
+                docProvider.classDocs.atFail(class.name, { 
                     var stream, doc, node;
                     doc = SCDoc.documents["Classes/"++class.name];
 
@@ -115,12 +115,12 @@ LSPConnection {
                         try {
                             node = SCDoc.parseDoc(doc);
                         } {
-                            LSPDatabase.classDocs.put(class.name, "");
+                            docProvider.classDocs.put(class.name, "");
                             ^"" 
                         };
                             stream = CollStream("");
                             SCDocMarkdownRenderer.renderOnStream(stream, doc, node);
-                            LSPDatabase.classDocs.put(class.name, stream.collection); 
+                            docProvider.classDocs.put(class.name, stream.collection); 
                             stream.collection
                         }, { "undocumented" }
                     );

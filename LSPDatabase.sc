@@ -396,6 +396,8 @@ LSPDatabase {
             ch.isAlphaNum or: { ch == $_ }
         };
         
+        if (lineString[start].class == Nil ) { ^nil };
+
         Log('LanguageServer.quark').info("Searching line for a word: '%' at %:%", lineString, line, character);
 
         if (not(isWord.(lineString[start])) and: {

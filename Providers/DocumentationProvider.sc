@@ -1,9 +1,10 @@
 DocumentationProvider : LSPProvider {
   classvar registry;
+  classvar <classDocs;
 
   *initClass {
-    // currently support only `Class` doc.
-    registry = Dictionary.new(1);
+    registry = Dictionary.new(); // currently support only `Class` doc.
+    classDocs = Dictionary.new();
   }
 
   *methodNames { ^[ "internal/documentation" ] }
